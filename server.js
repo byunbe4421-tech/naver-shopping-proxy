@@ -1,45 +1,39 @@
 import express from "express";
-import cors from "cors";
 import fetch from "node-fetch";
+import dotenv from "dotenv";
+import cors from "cors";
 
+dotenv.config();
 const app = express();
-const PORT = process.env.PORT || 3000;
-
-const NAVER_CLIENT_ID = process.env.NAVER_CLIENT_ID;
-const NAVER_CLIENT_SECRET = process.env.NAVER_CLIENT_SECRET;
-
 app.use(cors());
 
 app.get("/naver-shop", async (req, res) => {
-  const q = req.query.query;
-  if (!q) {
-    return res.status(400).json({ error: "query 파라미터를 넣어주세요" });
-  }
-
   try {
-    const url = `https://openapi.naver.com/v1/search/shop?query=${encodeURIComponent(
-      q
-    )}&display=10`;
+    const query = req.query.query;
+    const limit = req.query.limit || 5;
 
-    const resp = await fetch(url, {
+    const apiUrl = `https://openapi.naver.com/v1/search/shop.json?query=${encodeURIComponent(
+      query
+    )}&display=${limit}`;
+
+    const response = await fetch(apiUrl, {
       headers: {
-        "X-Naver-Client-Id": NAVER_CLIENT_ID,
-        "X-Naver-Client-Secret": NAVER_CLIENT_SECRET
-      }
+        "X-Naver-Client-Id": process.env.NAVER_CLIENT_ID,
+        "X-Naver-Client-Secret": process.env.NAVER_CLIENT_SECRET,
+      },
     });
 
-    const data = await resp.json();
-    return res.json(data);
-  } catch (err) {
-    console.error(err);
-    return res.status(500).json({ error: "naver api error" });
+    const data = await response.json();
+    res.status(response.status).json(data);
+  } catch (error) {
+    console.error("❌ Error:", error);
+    res.status(500).json({ error: "Internal Server Error" });
   }
 });
 
-app.get("/", (req, res) => {
-  res.send("Naver shopping proxy is running");
-});
+// ✅ 환경변수 확인용 로그
+console.log("✅ NAVER_CLIENT_ID:", process.env.NAVER_CLIENT_ID);
+console.log("✅ NAVER_CLIENT_SECRET:", process.env.NAVER_CLIENT_SECRET);
 
-app.listen(PORT, () => {
-  console.log(`server running on ${PORT}`);
-});
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => console.log(`✅ Server running on ${PORT}`));
